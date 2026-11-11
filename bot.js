@@ -6,7 +6,7 @@ import http from 'http';
 
 dotenv.config();
 
-// HTTP server for Render health checks
+// Simple HTTP server for Render health checks
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -24,6 +24,27 @@ Job details:
 - Requirements: Laptop & Wi-Fi are MANDATORY, good communication skills.
 - Hours: 9 hours working shift, rotational.
 Answer candidate questions politely, concisely, and professionally.`;
+
+// Helper function with model fallback
+async function generateAIResponse(text) {
+  const models = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+
+  for (const modelName of models) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: text,
+        config: {
+          systemInstruction: SYSTEM_PROMPT
+        }
+      });
+      return response.text;
+    } catch (err) {
+      console.warn(`⚠️ Model ${modelName} failed (${err.status || err.message}). Retrying with next model...`);
+    }
+  }
+  throw new Error('All AI models are currently unavailable.');
+}
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -72,15 +93,7 @@ async function startBot() {
     console.log(`📩 Received message from ${sender}: "${text}"`);
 
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: text,
-        config: {
-          systemInstruction: SYSTEM_PROMPT
-        }
-      });
-
-      const replyText = response.text || "Thank you for reaching out to Accurafind. How can I assist you today?";
+      const replyText = await generateAIResponse(text) || "Thank you for reaching out to Accurafind. How can I assist you today?";
       await sock.sendMessage(sender, { text: replyText });
       console.log(`📤 Sent AI reply to ${sender}`);
     } catch (err) {
