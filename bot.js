@@ -6,7 +6,7 @@ import http from 'http';
 
 dotenv.config();
 
-// Simple HTTP server listening on 0.0.0.0 to satisfy Render's health checks
+// HTTP server for Render health checks
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -75,4 +75,12 @@ async function startBot() {
       });
 
       const replyText = response.text || "Thank you for reaching out to Accurafind. How can I assist you today?";
-      await sock.sendMessage(sender, { text
+      await sock.sendMessage(sender, { text: replyText });
+      console.log(`📤 Sent AI reply to ${sender}`);
+    } catch (err) {
+      console.error('Error handling message:', err.message || err);
+    }
+  });
+}
+
+startBot();
