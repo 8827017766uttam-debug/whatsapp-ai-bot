@@ -59,11 +59,17 @@ async function startBot() {
     if (!msg?.message || msg.key.fromMe) return;
 
     const sender = msg.key.remoteJid;
-    const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+    
+    // Extract text across all message wrapper types
+    const text = 
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      msg.message.ephemeralMessage?.message?.conversation ||
+      msg.message.ephemeralMessage?.message?.extendedTextMessage?.text;
 
     if (!text) return;
 
-    console.log(`📩 Received message: "${text}" from ${sender}`);
+    console.log(`📩 Received message from ${sender}: "${text}"`);
 
     try {
       const response = await ai.models.generateContent({
@@ -78,7 +84,7 @@ async function startBot() {
       await sock.sendMessage(sender, { text: replyText });
       console.log(`📤 Sent AI reply to ${sender}`);
     } catch (err) {
-      console.error('Error handling message:', err.message || err);
+      console.error('❌ Error generating AI reply:', err.message || err);
     }
   });
 }
