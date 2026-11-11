@@ -1,9 +1,19 @@
-﻿import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import http from 'http';
 
 dotenv.config();
+
+// Simple HTTP server listening on 0.0.0.0 to satisfy Render's health checks
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Accurafind WhatsApp Assistant is running 24/7!\n');
+}).listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 HTTP Server listening on port ${PORT}`);
+});
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -46,7 +56,7 @@ async function startBot() {
 
   sock.ev.on('messages.upsert', async (m) => {
     const msg = m.messages[0];
-    if (!msg.message || msg.key.fromMe) return;
+    if (!msg?.message || msg.key.fromMe) return;
 
     const sender = msg.key.remoteJid;
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
@@ -64,13 +74,5 @@ async function startBot() {
         }
       });
 
-      const replyText = response.text;
-      await sock.sendMessage(sender, { text: replyText });
-      console.log(`📤 Sent AI reply to ${sender}`);
-    } catch (err) {
-      console.error('Error replying:', err);
-    }
-  });
-}
-
-startBot();
+      const replyText = response.text || "Thank you for reaching out to Accurafind. How can I assist you today?";
+      await sock.sendMessage(sender, { text
